@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>サンレンタン 得点計算</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      color: #333;
+      text-align: center;
+    }
+
+    header {
+      background-color: #006400;
+      color: #fff;
+      padding: 10px 0;
+      margin-bottom: 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    #score-display {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px auto;
+      width: 80%;
+      max-width: 600px;
+      border-radius: 5px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #008000;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #005700;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    .screen {
+      display: none;
+      padding: 20px;
+    }
+
+    .active {
+      display: block;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-top: 0;
+    }
+
+    .option-button {
+      margin: 10px;
+      padding: 20px;
+      font-size: 50px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      width: 120px;
+      height: 120px;
+      display: inline-block;
+      text-align: center;
+      line-height: 80px;
+      cursor: pointer;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    .option-A {
+      background-color: white;
+      color: black;
+    }
+
+    .option-B {
+      background-color: black;
+      color: white;
+    }
+
+    .option-C {
+      background-color: red;
+      color: white;
+    }
+
+    .option-D {
+      background-color: blue;
+      color: white;
+    }
+
+    .option-E {
+      background-color: yellow;
+      color: black;
+    }
+
+    .option-F {
+      background-color: green;
+      color: white;
+    }
+
+    .option-G {
+      background-color: orange;
+      color: white;
+    }
+
+    .option-button:hover {
+      background-color: #87CEEB;
+      border-color: #007BFF;
+    }
+
+    .option-button:disabled {
+      background-color: #e0e0e0;
+      border-color: #ccc;
+      color: #999;
+      cursor: not-allowed;
+    }
+
+    .highlight {
+      color: red;
+      font-weight: bold;
+    }
+
+    footer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>サンレンタン 得点計算</h1>
+  </header>
+
+  <div id="score-display">合計得点: <span id="total-score">0</span>点</div>
+  <button onclick="confirmResetScore()">得点リセット</button>
+
+  <!-- 画面1-3: ユーザー予想 3位を選ぶ -->
+  <div id="screen1-3" class="screen active">
+    <h2>3位を選んでください</h2>
+    <div id="options3"></div>
+    <button onclick="nextScreen('screen-memo-3')">出題者のランキングメモ</button>
+  </div>
+
+  <!-- 出題者のランキングメモ 3位選択 -->
+  <div id="screen-memo-3" class="screen">
+    <h2>出題者のランキングメモ: 3位を選んでください</h2>
+    <div id="memo-options3"></div>
+    <button onclick="nextScreen('screen1-3')">戻る</button>
+  </div>
+  
+  <!-- 出題者のランキングメモ 2位選択 -->
+  <div id="screen-memo-2" class="screen">
+    <h2>出題者のランキングメモ: 2位を選んでください</h2>
+    <div id="memo-options2"></div>
+    <button onclick="goBackToRankMemo(3)">戻る</button>
+  </div>
+  
+  <!-- 出題者のランキングメモ 1位選択 -->
+  <div id="screen-memo-1" class="screen">
+    <h2>出題者のランキングメモ: 1位を選んでください</h2>
+    <div id="memo-options1"></div>
+    <button onclick="goBackToRankMemo(2)">戻る</button>
+  </div>
+  
+  <!-- 出題者のランキングメモ確認 -->
+  <div id="screen-memo-summary" class="screen">
+    <h2>出題者のランキングメモ確認</h2>
+    <div>
+      <p>3位: <span id="memo-rank3"></span></p>
+      <p>2位: <span id="memo-rank2"></span></p>
+      <p>1位: <span id="memo-rank1"></span></p>
+    </div>
+    <button onclick="confirmResetMemo()">完了</button>
+    <button onclick="fixMemoSelections()">修正する</button>
+  </div>
+  
+  <!-- 画面1-2: ユーザー予想 2位を選ぶ -->
+  <div id="screen1-2" class="screen">
+    <h2>2位を選んでください</h2>
+    <div id="options2"></div>
+    <button onclick="goBackToRank(3)">戻る</button>
+  </div>
+
+  <!-- 画面1-1: ユーザー予想 1位を選ぶ -->
+  <div id="screen1-1" class="screen">
+    <h2>1位を選んでください</h2>
+    <div id="options1"></div>
+    <button onclick="goBackToRank(2)">戻る</button>
+  </div>
+
+  <!-- 画面1-summary: ユーザー予想確認 -->
+  <div id="screen1-summary" class="screen">
+    <h2>予想内容確認</h2>
+    <div>
+      <p>3位: <span id="user-rank3"></span></p>
+      <p>2位: <span id="user-rank2"></span></p>
+      <p>1位: <span id="user-rank1"></span></p>
+    </div>
+    <button onclick="fixSelections()">修正する</button>
+    <button onclick="nextScreen('screen2-3')">出題者の答え入力へ</button>
+  </div>
+
+  <!-- 画面2-1: 出題者 3位を選ぶ -->
+  <div id="screen2-3" class="screen">
+    <h2>出題者の3位を選んでください</h2>
+    <div id="parent-options3"></div>
+    <button onclick="nextScreen('screen1-summary')">戻る</button>
+  </div>
+
+  <!-- 画面2-2: 出題者 2位を選ぶ -->
+  <div id="screen2-2" class="screen">
+    <h2>出題者の2位を選んでください</h2>
+    <div id="parent-options2"></div>
+    <button onclick="goBackToRankParent(3)">戻る</button>
+  </div>
+
+  <!-- 画面2-3: 出題者の1位を選ぶ -->
+  <div id="screen2-1" class="screen">
+    <h2>出題者の1位を選んでください</h2>
+    <div id="parent-options1"></div>
+    <button onclick="goBackToRankParent(2)">戻る</button>
+  </div>
+
+  <!-- 画面2-summary: 出題者の結果確認 -->
+  <div id="screen2-summary" class="screen">
+    <h2>出題者の結果確認</h2>
+    <div>
+      <p>3位: <span id="parent-rank3"></span></p>
+      <p>2位: <span id="parent-rank2"></span></p>
+      <p>1位: <span id="parent-rank1"></span></p>
+    </div>
+    <button onclick="fixParentSelections()">修正する</button>
+    <button onclick="calculateScore()">得点計算へ</button>
+  </div>
+
+  <!-- 画面3: 得点表示 -->
+  <div id="screen3" class="screen">
+    <h2>得点結果</h2>
+    <div id="score-rule" style="display: none;" class="highlight"></div>
+    <div id="round-score">今回の得点: <span>0</span>点</div>
+    <button onclick="resetOptions(); nextScreen('screen1-3')">次のラウンドへ</button>
+  </div>
+
+  <footer>
+    <p>&copy; Japan Sanrentan Association (ウソ)</p>
+  </footer>
+
+  <script>
+    let totalScore = localStorage.getItem('totalScore') ? parseInt(localStorage.getItem('totalScore')) : 0;
+    const allOptions = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    const userRanks = [null, null, null];
+    const parentRanks = [null, null, null];
+    const memoRanks = [null, null, null]; // メモ用選択
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderOptions(3); // ページロード時にユーザーの3位の選択肢を表示
+      renderParentOptions(3); // ページロード時に親の3位の選択肢を表示
+      renderMemoOptions(3); // 初期状態でメモ用3位を描画
+      document.getElementById('total-score').innerText = totalScore; // ローカルストレージから得点を表示
+    });
+
+    function confirmResetScore() {
+      if (confirm('合計得点がリセットされます。よろしいですか？')) {
+        resetScore();
+      }
+    }
+
+    function resetScore() {
+      totalScore = 0;
+      localStorage.setItem('totalScore', totalScore);
+      document.getElementById('total-score').innerText = totalScore;
+      alert('得点がリセットされました！');
+      resetOptions();
+      nextScreen('screen1-3');
+    }
+
+    function confirmResetMemo() {
+      if (confirm('メモ内容は残りません。よろしいですか？')) {
+        memoRanks.fill(null);
+        nextScreen('screen1-3');
+      }
+    }
+
+    function nextScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(screen => screen.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+      if (screenId === 'screen1-2') renderOptions(2);
+      if (screenId === 'screen1-1') renderOptions(1);
+      if (screenId === 'screen1-3') renderOptions(3);
+      if (screenId === 'screen1-summary') updateUserSummary();
+      if (screenId === 'screen2-2') renderParentOptions(2);
+      if (screenId === 'screen2-1') renderParentOptions(1);
+      if (screenId === 'screen2-summary') updateParentSummary();
+      if (screenId === 'screen-memo-2') renderMemoOptions(2);
+      if (screenId === 'screen-memo-1') renderMemoOptions(1);
+      if (screenId === 'screen-memo-3') renderMemoOptions(3);
+      if (screenId === 'screen-memo-summary') updateMemoSummary();
+    }
+
+    function goBackToRank(rank) {
+      userRanks[rank - 1] = null; // 選択をリセット
+      renderOptions(rank); // ボタンを再描画
+      nextScreen(`screen1-${rank}`);
+    }
+
+    function goBackToRankParent(rank) {
+      parentRanks[rank - 1] = null; // 選択をリセット
+      renderParentOptions(rank); // ボタンを再描画
+      nextScreen(`screen2-${rank}`);
+    }
+
+    function goBackToRankMemo(rank) {
+      memoRanks[rank - 1] = null; // 選択をリセット
+      renderMemoOptions(rank); // ボタンを再描画
+      nextScreen(`screen-memo-${rank}`);
+    }
+
+    function selectOption(rank, value) {
+      userRanks[rank - 1] = value;
+      const nextScreenId = rank === 3 ? 'screen1-2' : rank === 2 ? 'screen1-1' : 'screen1-summary';
+      nextScreen(nextScreenId);
+    }
+
+    function selectParentRank(rank, value) {
+      parentRanks[rank - 1] = value;
+      const nextScreenId = rank === 3 ? 'screen2-2' : rank === 2 ? 'screen2-1' : 'screen2-summary';
+      nextScreen(nextScreenId);
+    }
+    function selectMemoRank(rank, value) {
+      memoRanks[rank - 1] = value; // 選択を保持
+      const nextScreenId = rank === 3 ? 'screen-memo-2' : rank === 2 ? 'screen-memo-1' : 'screen-memo-summary';
+      nextScreen(nextScreenId); // 次の画面へ遷移
+    }
+
+    function renderOptions(rank) {
+      const containerId = rank === 3 ? 'options3' : rank === 2 ? 'options2' : 'options1';
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      allOptions.forEach(option => {
+        const isDisabled = userRanks.includes(option) && userRanks[rank - 1] !== option; // 現在選択中の値以外は無効化
+        container.innerHTML += `<button class='option-button option-${option}' ${isDisabled ? 'disabled' : ''} onclick='selectOption(${rank}, "${option}")'>${option}</button>`;
+      });
+    }
+
+    function renderParentOptions(rank) {
+      const containerId = rank === 3 ? 'parent-options3' : rank === 2 ? 'parent-options2' : 'parent-options1';
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      allOptions.forEach(option => {
+        const isDisabled = parentRanks.includes(option);
+        container.innerHTML += `<button class='option-button option-${option}' ${isDisabled ? 'disabled' : ''} onclick='selectParentRank(${rank}, "${option}")'>${option}</button>`;
+      });
+    }
+
+    function renderMemoOptions(rank) {
+      const containerId = rank === 3 ? 'memo-options3' : rank === 2 ? 'memo-options2' : 'memo-options1';
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      allOptions.forEach(option => {
+        const isDisabled = memoRanks.includes(option) && memoRanks[rank - 1] !== option; // 選択済みの値は無効化
+        container.innerHTML += `<button class='option-button option-${option}' ${isDisabled ? 'disabled' : ''} onclick='selectMemoRank(${rank}, "${option}")'>${option}</button>`;
+      });
+    }
+
+    function updateUserSummary() {
+      document.getElementById('user-rank3').innerText = userRanks[2] || '未選択';
+      document.getElementById('user-rank2').innerText = userRanks[1] || '未選択';
+      document.getElementById('user-rank1').innerText = userRanks[0] || '未選択';
+    }
+
+    function updateParentSummary() {
+      document.getElementById('parent-rank3').innerText = parentRanks[2] || '未選択';
+      document.getElementById('parent-rank2').innerText = parentRanks[1] || '未選択';
+      document.getElementById('parent-rank1').innerText = parentRanks[0] || '未選択';
+    }
+
+    function updateMemoSummary() {
+      document.getElementById('memo-rank3').innerText = memoRanks[2] || '未選択';
+      document.getElementById('memo-rank2').innerText = memoRanks[1] || '未選択';
+      document.getElementById('memo-rank1').innerText = memoRanks[0] || '未選択';
+    }
+
+    function fixSelections() {
+      userRanks.fill(null); // 全ての選択をリセット
+      nextScreen('screen1-3');
+    }
+
+    function fixParentSelections() {
+      parentRanks.fill(null); // 全ての親の選択をリセット
+      nextScreen('screen2-3');
+    }
+
+    function fixMemoSelections() {
+      memoRanks.fill(null); // メモ用選択をリセット
+      nextScreen('screen-memo-3');
+    }
+
+    function resetOptions() {
+      userRanks.fill(null);
+      parentRanks.fill(null);
+      const buttons = document.querySelectorAll('.option-button');
+      buttons.forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('selected');
+      });
+    }
+
+    function calculateScore() {
+      if (userRanks.includes(null) || parentRanks.includes(null)) {
+        alert('すべての順位を選択してください！');
+        return;
+      }
+
+      let score = 0;
+      let ruleName = '';
+      const matchCount = userRanks.filter(rank => parentRanks.includes(rank)).length;
+
+      if (JSON.stringify(userRanks) === JSON.stringify(parentRanks)) {
+        score = 6; // サンレンタン
+        ruleName = 'サンレンタン';
+      } else if (matchCount === 3) {
+        score = 4; // サンレンプク
+        ruleName = 'サンレンプク';
+      } else if (userRanks[0] === parentRanks[0] && userRanks[1] === parentRanks[1]) {
+        score = 3; // ニレンタン
+        ruleName = 'ニレンタン';
+      } else if (matchCount === 2) {
+        score = 2; // プクプク
+        ruleName = 'プクプク';
+      } else if (userRanks[0] === parentRanks[0]) {
+        score = 1; // タン
+        ruleName = 'タン';
+      }
+
+      totalScore += score;
+      localStorage.setItem('totalScore', totalScore); // ローカルストレージに保存
+
+      document.getElementById('round-score').innerHTML = `今回の得点: <span>${score}</span>点`;
+      const scoreRuleDiv = document.getElementById('score-rule');
+      if (ruleName) {
+        scoreRuleDiv.style.display = 'block';
+        scoreRuleDiv.innerHTML = `的中！！ (${ruleName})`;
+      } else {
+        scoreRuleDiv.style.display = 'none';
+      }
+      document.getElementById('total-score').innerText = totalScore;
+      nextScreen('screen3');
+    }
+  </script>
+</body>
+</html>
