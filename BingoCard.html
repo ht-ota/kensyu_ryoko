@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex">
   <title>ビンゴカード</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
   <style>
@@ -59,6 +60,7 @@
       grid-template-columns: repeat(5, 1fr);
       gap: 15px;
       max-width: 500px;
+      width: 95%;
       margin: 0 auto 40px auto;
       padding: 15px;
       background: #fff;
@@ -96,11 +98,30 @@
     .highlight {
       background-color: var(--highlight-color);
     }
+
+    /* 初期状態では非表示 */
+    .hidden {
+      display: none;
+    }
+
+    /* メディアクエリによるレスポンシブ対応 */
+    @media (max-width: 600px) {
+      .bingo-card {
+        max-width: 100%;
+        padding: 10px;
+        gap: 10px;
+      }
+      .bingo-cell {
+        padding: 15px;
+        font-size: 16px;
+      }
+    }
   </style>
 </head>
 <body>
   <h1>ビンゴカード</h1>
-  <div id="bingoCard" class="bingo-card"></div>
+  <!-- 最初はhiddenクラスで非表示 -->
+  <div id="bingoCard" class="bingo-card hidden"></div>
   <button id="newCardButton">新しいカード</button>
 
   <script>
@@ -267,7 +288,7 @@
         const [rowIndex, colIndex] = cellKey.split('-').map(Number);
         const cell = document.querySelector(`.bingo-cell:nth-child(${rowIndex * 5 + colIndex + 1})`);
         if (cell) {
-          cell.classList.add('selected'); // 選択されたマスの色を変える
+          cell.classList.add('selected'); // 選択状態の色を反映
           cell.classList.add('clicked');  // 3D回転の状態を保持
         }
       });
@@ -280,18 +301,22 @@
       window.history.pushState({}, '', url);
       const card = generateBingoCard(
         cardId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-      ); // IDをシード値に変換
+      );
       displayBingoCard(card);
+
+      // カード表示用のhiddenクラスを削除
+      document.getElementById('bingoCard').classList.remove('hidden');
     });
 
-    // ページ読み込み時にカードを表示
+    // ページ読み込み時にカードが存在する場合は表示
     const cardId = getCardId();
     if (cardId) {
       const card = generateBingoCard(
         cardId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-      ); // IDをシード値に変換
+      );
       displayBingoCard(card);
-      loadSelectedCells(cardId); // 選択されたマスを読み込む
+      loadSelectedCells(cardId);
+      document.getElementById('bingoCard').classList.remove('hidden');
     }
   </script>
 </body>
