@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ビンゴカード</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* カラーパレット・CSS変数 */
+    :root {
+      --primary-color: #4a90e2;
+      --primary-color-hover: #357ABD;
+      --highlight-color: #ffcc80;
+      --free-space-color: #fff9c4;
+      --selected-color: #c8e6c9;
+      --cell-bg: #ffffff;
+      --cell-border: #e0e0e0;
+      --cell-shadow: rgba(0, 0, 0, 0.1);
+    }
+
+    /* リセットと共通設定 */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+      color: #333;
+      min-height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      font-weight: 700;
+      margin-top: 40px;
+      margin-bottom: 20px;
+    }
+    button {
+      display: block;
+      margin: 0 auto 20px auto;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      background-color: var(--primary-color);
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: var(--primary-color-hover);
+    }
+
+    /* ビンゴカードのスタイル */
+    .bingo-card {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 15px;
+      max-width: 500px;
+      margin: 0 auto 40px auto;
+      padding: 15px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px var(--cell-shadow);
+      perspective: 1000px; /* 3D効果用 */
+    }
+    .bingo-cell {
+      background-color: var(--cell-bg);
+      border: 1px solid var(--cell-border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+      transform-style: preserve-3d;
+      transform-origin: bottom;
+      box-shadow: 0 2px 4px var(--cell-shadow);
+    }
+    .bingo-cell:hover {
+      box-shadow: 0 4px 8px var(--cell-shadow);
+      transform: translateY(-3px);
+    }
+    .bingo-cell.clicked {
+      transform: rotateX(60deg);
+    }
+    .free-space {
+      background-color: var(--free-space-color);
+    }
+    .selected {
+      background-color: var(--selected-color);
+    }
+    .highlight {
+      background-color: var(--highlight-color);
+    }
+  </style>
+</head>
+<body>
+  <h1>ビンゴカード</h1>
+  <div id="bingoCard" class="bingo-card"></div>
+  <button id="newCardButton">新しいカード</button>
+
+  <script>
+    function seededRandom(seed) {
+      // シード値を使った乱数生成
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+
+    function generateBingoCard(seed) {
+      const card = [[], [], [], [], []];
+      const ranges = [
+        Array.from({ length: 15 }, (_, i) => i + 1),   // 1-15
+        Array.from({ length: 15 }, (_, i) => i + 16),  // 16-30
+        Array.from({ length: 15 }, (_, i) => i + 31),  // 31-45
+        Array.from({ length: 15 }, (_, i) => i + 46),  // 46-60
+        Array.from({ length: 15 }, (_, i) => i + 61)   // 61-75
+      ];
+
+      for (let j = 0; j < 5; j++) { // 列をループ
+        const numbers = [...ranges[j]];
+        for (let i = 0; i < 5; i++) { // 行をループ
+          if (i === 2 && j === 2) {
+            card[i][j] = 'free'; // 中央のマスを'free'に変更
+          } else {
+            const randomIndex = Math.floor(seededRandom(seed + j * 5 + i) * numbers.length);
+            card[i][j] = numbers[randomIndex];
+            numbers.splice(randomIndex, 1);
+          }
+        }
+      }
+      return card;
+    }
+
+    function displayBingoCard(card) {
+      const bingoCardDiv = document.getElementById('bingoCard');
+      bingoCardDiv.innerHTML = '';
+      card.forEach((row, rowIndex) => {
+        row.forEach((number, colIndex) => {
+          const cell = document.createElement('div');
+          cell.className = 'bingo-cell';
+          cell.textContent = number;
+          if (number === 'free') {
+            cell.classList.add('free-space'); // 'free'のスタイルを適用
+          }
+          cell.addEventListener('click', () => handleCellClick(rowIndex, colIndex, cell));
+          bingoCardDiv.appendChild(cell);
+        });
+      });
+    }
+
+    function handleCellClick(rowIndex, colIndex, cell) {
+      cell.classList.toggle('selected'); // マスの色を変える
+      cell.classList.toggle('clicked'); // アニメーションを追加
+      const cardId = getCardId();
+      const selectedCells = JSON.parse(localStorage.getItem(cardId)) || [];
+      const cellKey = `${rowIndex}-${colIndex}`;
+
+      if (cell.classList.contains('selected')) {
+        selectedCells.push(cellKey); // 選択したマスを保存
+      } else {
+        const index = selectedCells.indexOf(cellKey);
+        if (index > -1) {
+          selectedCells.splice(index, 1); // 選択解除したマスを削除
+        }
+      }
+
+      // ストレージのサイズ制限を考慮
+      if (selectedCells.length > 100) { // 例として100個まで保存
+        selectedCells.shift(); // 古いものから削除
+      }
+      localStorage.setItem(cardId, JSON.stringify(selectedCells)); // ストレージに保存
+
+      checkForBingo(selectedCells); // ビンゴのチェック
+    }
+
+    function checkForBingo(selectedCells) {
+      const rows = Array.from({ length: 5 }, () => new Set());
+      const cols = Array.from({ length: 5 }, () => new Set());
+      const diag1 = new Set(); // 左上から右下の対角線
+      const diag2 = new Set(); // 右上から左下の対角線
+
+      selectedCells.forEach(cellKey => {
+        const [rowIndex, colIndex] = cellKey.split('-').map(Number);
+        rows[rowIndex].add(colIndex);
+        cols[colIndex].add(rowIndex);
+        if (rowIndex === colIndex) {
+          diag1.add(rowIndex); // 左上から右下の対角線
+        }
+        if (rowIndex + colIndex === 4) {
+          diag2.add(rowIndex); // 右上から左下の対角線
+        }
+      });
+
+      // ビンゴのチェック
+      rows.forEach((row, index) => {
+        if (row.size === 5) {
+          highlightRow(index);
+        }
+      });
+
+      cols.forEach((col, index) => {
+        if (col.size === 5) {
+          highlightCol(index);
+        }
+      });
+
+      // 対角線のチェック
+      if (diag1.size === 5) {
+        highlightDiagonal(1);
+      }
+      if (diag2.size === 5) {
+        highlightDiagonal(2);
+      }
+    }
+
+    function highlightRow(rowIndex) {
+      const bingoCardDiv = document.getElementById('bingoCard');
+      for (let colIndex = 0; colIndex < 5; colIndex++) {
+        const cell = bingoCardDiv.children[rowIndex * 5 + colIndex];
+        if (cell) {
+          cell.classList.add('highlight'); // 行を強調
+        }
+      }
+    }
+
+    function highlightCol(colIndex) {
+      const bingoCardDiv = document.getElementById('bingoCard');
+      for (let rowIndex = 0; rowIndex < 5; rowIndex++) {
+        const cell = bingoCardDiv.children[rowIndex * 5 + colIndex];
+        if (cell) {
+          cell.classList.add('highlight'); // 列を強調
+        }
+      }
+    }
+
+    function highlightDiagonal(diagonal) {
+      const bingoCardDiv = document.getElementById('bingoCard');
+      if (diagonal === 1) { // 左上から右下
+        for (let i = 0; i < 5; i++) {
+          const cell = bingoCardDiv.children[i * 5 + i];
+          if (cell) {
+            cell.classList.add('highlight'); // 対角線を強調
+          }
+        }
+      } else if (diagonal === 2) { // 右上から左下
+        for (let i = 0; i < 5; i++) {
+          const cell = bingoCardDiv.children[i * 5 + (4 - i)];
+          if (cell) {
+            cell.classList.add('highlight'); // 対角線を強調
+          }
+        }
+      }
+    }
+
+    function getCardId() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('id');
+    }
+
+    function loadSelectedCells(cardId) {
+      const selectedCells = JSON.parse(localStorage.getItem(cardId)) || [];
+      selectedCells.forEach(cellKey => {
+        const [rowIndex, colIndex] = cellKey.split('-').map(Number);
+        const cell = document.querySelector(`.bingo-cell:nth-child(${rowIndex * 5 + colIndex + 1})`);
+        if (cell) {
+          cell.classList.add('selected'); // 選択されたマスの色を変える
+          cell.classList.add('clicked');  // 3D回転の状態を保持
+        }
+      });
+    }
+
+    document.getElementById('newCardButton').addEventListener('click', () => {
+      const cardId = Math.random().toString(36).substring(2, 15);
+      const url = new URL(window.location);
+      url.searchParams.set('id', cardId);
+      window.history.pushState({}, '', url);
+      const card = generateBingoCard(
+        cardId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      ); // IDをシード値に変換
+      displayBingoCard(card);
+    });
+
+    // ページ読み込み時にカードを表示
+    const cardId = getCardId();
+    if (cardId) {
+      const card = generateBingoCard(
+        cardId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+      ); // IDをシード値に変換
+      displayBingoCard(card);
+      loadSelectedCells(cardId); // 選択されたマスを読み込む
+    }
+  </script>
+</body>
+</html>
