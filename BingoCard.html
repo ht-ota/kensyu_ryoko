@@ -300,6 +300,14 @@
     }
 
     document.getElementById('newCardButton').addEventListener('click', () => {
+      const bingoCardElement = document.getElementById('bingoCard');
+
+      // 既にカードが表示されている場合（hidden クラスがない場合）は確認ダイアログを表示
+      if (!bingoCardElement.classList.contains('hidden')) {
+        if (!window.confirm("新しいカードにしますか？")) {
+          return; // ユーザーがキャンセルした場合は処理を中断
+        }
+      }
       const cardId = Math.random().toString(36).substring(2, 15);
       const url = new URL(window.location);
       url.searchParams.set('id', cardId);
@@ -311,6 +319,7 @@
 
       // カード表示用のhiddenクラスを削除
       document.getElementById('bingoCard').classList.remove('hidden');
+      
     });
 
     // ページ読み込み時にカードが存在する場合は表示
