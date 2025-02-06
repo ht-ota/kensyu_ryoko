@@ -34,8 +34,9 @@
     h1 {
       text-align: center;
       font-weight: 700;
-      margin-top: 40px;
-      margin-bottom: 20px;
+      padding-top: 40px;
+      padding-bottom: 20px;
+      margin: 0;
     }
     button {
       display: block;
@@ -81,6 +82,10 @@
       transform-style: preserve-3d;
       transform-origin: bottom;
       box-shadow: 0 2px 4px var(--cell-shadow);
+      aspect-ratio: 1 / 1;
+      display: flex;
+      justify-content: center; /* 水平方向の中央寄せ */
+      align-items: center;     /* 垂直方向の中央寄せ */
     }
     .bingo-cell:hover {
       box-shadow: 0 4px 8px var(--cell-shadow);
